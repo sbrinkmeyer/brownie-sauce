@@ -1,0 +1,81 @@
+name: Build Installers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS DMG (${{ matrix.arch }})
+        run: npx electron-builder --mac dmg --${{ matrix.arch }}
+
+      - name: Upload mac artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brownie-mac-${{ matrix.arch }}
+          path: dist/*
+
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows NSIS installer
+        run: npx electron-builder --win nsis --x64
+
+      - name: Upload windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brownie-win-x64
+          path: dist/*
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Linux AppImage
+        run: npx electron-builder --linux AppImage --x64
+
+      - name: Upload linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brownie-linux-appimage-x64
+          path: dist/*
