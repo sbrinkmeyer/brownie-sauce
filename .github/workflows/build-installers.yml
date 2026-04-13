@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: Create a GitHub Release and tag
+        description: "Create a GitHub Release and tag"
         required: true
         default: false
         type: boolean
