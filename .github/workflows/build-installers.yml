@@ -16,6 +16,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-mac:
     runs-on: macos-latest
@@ -25,10 +28,10 @@ jobs:
         arch: [x64, arm64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -40,19 +43,21 @@ jobs:
         run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
 
       - name: Upload mac artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: brownie-mac-${{ matrix.arch }}
-          path: dist/*
+          path: |
+            dist/*.dmg
+            dist/*.dmg.blockmap
 
   build-win:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -64,19 +69,21 @@ jobs:
         run: npx electron-builder --win nsis --x64 --publish never
 
       - name: Upload windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: brownie-win-x64
-          path: dist/*
+          path: |
+            dist/*.exe
+            dist/*.exe.blockmap
 
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -88,10 +95,12 @@ jobs:
         run: npx electron-builder --linux AppImage --x64 --publish never
 
       - name: Upload linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: brownie-linux-appimage-x64
-          path: dist/*
+          path: |
+            dist/*.AppImage
+            dist/*.AppImage.zsync
 
   release:
     runs-on: ubuntu-latest
@@ -109,52 +118,71 @@ jobs:
           fi
 
       - name: Download macOS x64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: brownie-mac-x64
           path: release-assets/mac-x64
 
       - name: Download macOS arm64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: brownie-mac-arm64
           path: release-assets/mac-arm64
 
       - name: Download Windows x64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: brownie-win-x64
           path: release-assets/win-x64
 
       - name: Download Linux AppImage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: brownie-linux-appimage-x64
           path: release-assets/linux-x64
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
-          name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
-          target_commitish: ${{ github.sha }}
-          append_body: true
-          body: |
-            ## macOS note for unsigned builds
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
 
-            If macOS says the app cannot be opened because the developer cannot be verified:
+          cat > release-notes.md <<'EOF'
+          ## macOS note for unsigned builds
 
-            1. Move Brownie.app to Applications.
-            2. In Finder, right-click Brownie.app and choose Open.
-            3. Click Open again in the confirmation dialog.
+          If macOS says the app cannot be opened because the developer cannot be verified:
 
-            Terminal alternative:
+          1. Move Brownie.app to Applications.
+          2. In Finder, right-click Brownie.app and choose Open.
+          3. Click Open again in the confirmation dialog.
 
-            xattr -dr com.apple.quarantine /Applications/Brownie.app
+          Terminal alternative:
 
-            Only bypass Gatekeeper for builds you trust.
-          generate_release_notes: true
-          files: |
-            release-assets/**/*.dmg
-            release-assets/**/*.exe
-            release-assets/**/*.AppImage
+          xattr -dr com.apple.quarantine /Applications/Brownie.app
+
+          Only bypass Gatekeeper for builds you trust.
+          EOF
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              release-assets/**/*.dmg \
+              release-assets/**/*.exe \
+              release-assets/**/*.AppImage \
+              --clobber
+
+            gh release edit "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --target "$RELEASE_SHA" \
+              --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" \
+              release-assets/**/*.dmg \
+              release-assets/**/*.exe \
+              release-assets/**/*.AppImage \
+              --target "$RELEASE_SHA" \
+              --title "$RELEASE_TAG" \
+              --generate-notes \
+              --notes-file release-notes.md
+          fi

@@ -16,6 +16,7 @@
   "build": {
     "appId": "com.brownie.app",
     "productName": "Brownie",
+    "compression": "maximum",
     "mac": {
       "category": "public.app-category.music",
       "target": [
