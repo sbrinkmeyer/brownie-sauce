@@ -65,3 +65,25 @@ Trigger it from GitHub Actions using "Build Installers" and download artifacts f
 
 - Unsigned macOS/Windows artifacts may show OS warnings until code signing/notarization is configured.
 - Linux AppImage is distro-agnostic for most modern distributions.
+
+## macOS Gatekeeper (Unsigned Build)
+
+If macOS blocks launch with a message like "cannot be opened because the developer cannot be verified", use one of these options.
+
+Only do this for builds you trust.
+
+### Option 1: Finder (recommended)
+
+1. Move the app to Applications.
+2. In Finder, right-click the app and choose Open.
+3. Click Open again in the confirmation dialog.
+
+After the first successful launch, macOS should allow normal double-click opening.
+
+### Option 2: Terminal (remove quarantine flag)
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Brownie.app
+```
+
+Then launch the app normally.

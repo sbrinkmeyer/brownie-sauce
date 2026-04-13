@@ -1,0 +1,60 @@
+name: Install help (Gatekeeper / launch issues)
+description: Get help launching Brownie on macOS, Windows, or Linux.
+title: "Install help: "
+labels:
+  - support
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this is macOS and you see "developer cannot be verified", Brownie is likely unsigned.
+
+        Quick fix (trusted builds only):
+        1. Move Brownie.app to Applications.
+        2. In Finder, right-click Brownie.app and choose Open.
+        3. Click Open again.
+
+        Terminal alternative:
+
+        xattr -dr com.apple.quarantine /Applications/Brownie.app
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Brownie version
+      description: Example v2.0.0
+      placeholder: v2.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_message
+    attributes:
+      label: Exact error message
+      description: Paste the full message shown by the OS.
+      placeholder: "Brownie.app can't be opened because Apple cannot check it for malicious software..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you already tried
+      description: List exact steps and commands.
+      placeholder: |
+        1. Downloaded DMG
+        2. Dragged app to Applications
+        3. Right-click Open (still blocked)
+    validations:
+      required: true
